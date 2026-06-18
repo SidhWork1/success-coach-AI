@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Success Coach AI — Build Milestones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07090F;--card:#0F1420;--card2:#141B2A;--border:#1C2D46;
+  --text:#F1F5FF;--muted:#7A90B0;--dim:#3A4F6A;
+  --green:#34D399;--green2:#10B981;
+  --blue:#60A5FA;--blue2:#3B82F6;
+  --amber:#FBBF24;--amber2:#F59E0B;
+  --violet:#A78BFA;--violet2:#8B5CF6;
+  --rose:#F87171;--rose2:#EF4444;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;line-height:1.7;overflow-x:hidden}
+
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:.85rem 3rem;background:rgba(7,9,15,.96);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.nav-brand{font-family:'Sora',sans-serif;font-weight:700;font-size:.9rem;color:var(--blue)}
+.nav-tag{font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;background:var(--card);padding:.2rem .6rem;border-radius:999px;border:1px solid var(--border)}
+
+.wrap{max-width:780px;margin:0 auto;padding:0 2.5rem 6rem}
+
+/* page header */
+.page-header{padding:4rem 0 3rem;border-bottom:1px solid var(--border);margin-bottom:3rem}
+.ph-eyebrow{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--blue);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.75rem}
+.ph-title{font-family:'Sora',sans-serif;font-size:clamp(1.8rem,4vw,2.4rem);font-weight:800;line-height:1.1;letter-spacing:-.02em;margin-bottom:1rem}
+.ph-body{font-size:.9rem;color:var(--muted);line-height:1.75;max-width:560px}
+
+/* phase heading */
+.phase{margin-bottom:.5rem;margin-top:3rem}
+.phase:first-of-type{margin-top:0}
+.phase-label{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem}
+.phase-title{font-family:'Sora',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text)}
+
+/* milestone card */
+.milestone{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.5rem 1.75rem;margin-bottom:.85rem;position:relative;overflow:hidden}
+.milestone::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:14px 0 0 14px}
+.m-green::before{background:var(--green2)}
+.m-blue::before{background:var(--blue2)}
+.m-amber::before{background:var(--amber2)}
+.m-violet::before{background:var(--violet2)}
+.m-rose::before{background:var(--rose2)}
+
+.m-header{display:flex;align-items:center;gap:.85rem;margin-bottom:1rem}
+.m-num{font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:500;padding:.2rem .55rem;border-radius:6px;flex-shrink:0}
+.mn-green{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25)}
+.mn-blue{background:rgba(59,130,246,.12);color:var(--blue);border:1px solid rgba(59,130,246,.25)}
+.mn-amber{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.25)}
+.mn-violet{background:rgba(139,92,246,.12);color:var(--violet);border:1px solid rgba(139,92,246,.25)}
+.mn-rose{background:rgba(239,68,68,.12);color:var(--rose);border:1px solid rgba(239,68,68,.25)}
+
+.m-title{font-family:'Sora',sans-serif;font-size:.95rem;font-weight:700;color:var(--text)}
+
+.m-completion-label{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem}
+
+.m-points{list-style:none;padding:0;display:flex;flex-direction:column;gap:.45rem}
+.m-points li{display:flex;align-items:flex-start;gap:.65rem;font-size:.84rem;color:var(--muted);line-height:1.6}
+.m-points li::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:.55rem}
+.m-green .m-points li::before{background:var(--green2)}
+.m-blue .m-points li::before{background:var(--blue2)}
+.m-amber .m-points li::before{background:var(--amber2)}
+.m-violet .m-points li::before{background:var(--violet2)}
+.m-rose .m-points li::before{background:var(--rose2)}
+
+/* sub-point indent */
+.m-points li.sub{padding-left:1.4rem;font-size:.8rem}
+.m-points li.sub::before{width:4px;height:4px;opacity:.5}
+
+/* divider between phases */
+.phase-divider{height:1px;background:var(--border);margin:2.5rem 0}
+
+footer{border-top:1px solid var(--border);padding:1.75rem 3rem;display:flex;align-items:center;justify-content:space-between;color:var(--dim);font-size:.78rem;max-width:780px;margin:0 auto}
+.footer-logo{font-family:'Sora',sans-serif;font-weight:700;color:var(--blue)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">Success Coach AI</div>
+  <div class="nav-tag">build milestones</div>
+</nav>
+
+<div class="wrap">
+
+<div class="page-header">
+  <div class="ph-eyebrow">How to build this</div>
+  <h1 class="ph-title">Build milestones</h1>
+  <p class="ph-body">Nine milestones across six phases. Each milestone builds on the previous one. At every milestone you have something working that you can test. What follows is what completion looks like at each step.</p>
+</div>
+
+<!-- ═══ PHASE 1 ═══ -->
+<div class="phase">
+  <div class="phase-label">Phase 1</div>
+  <div class="phase-title">Student can have a real conversation</div>
+</div>
+
+<div class="milestone m-green">
+  <div class="m-header">
+    <span class="m-num mn-green">M1</span>
+    <span class="m-title">Basic conversation</span>
+  </div>
+  <div class="m-completion-label">Completion</div>
+  <ul class="m-points">
+    <li>Student sends a message and gets a relevant, coherent response back</li>
+  </ul>
+</div>
+
+<div class="milestone m-green">
+  <div class="m-header">
+    <span class="m-num mn-green">M2</span>
+    <span class="m-title">Student data in the conversation</span>
+  </div>
+  <div class="m-completion-label">Completion</div>
+  <ul class="m-points">
+    <li>Response contains the student's actual subject scores, attendance percentage and upcoming exam dates</li>
+    <li>Response highlights anything that needs attention — a dropping score, low attendance, an exam coming up soon</li>
+  </ul>
+</div>
+
+<div class="milestone m-green">
+  <div class="m-header">
+    <span class="m-num mn-green">M3</span>
+    <span class="m-title">Questions answered from knowledge base</span>
+  </div>
+  <div class="m-completion-label">Completion</div>
+  <ul class="m-points">
+    <li>Student asks something about what they are studying and gets an answer from the knowledge base</li>
+    <li>Answer is accurate and specific to the course content</li>
+  </ul>
+</div>
+
+<div class="phase-divider"></div>
+
+<!-- ═══ PHASE 2 ═══ -->
+<div class="phase">
+  <div class="phase-label">Phase 2</div>
+  <div class="phase-title">System remembers the student</div>
+</div>
+
+<div class="milestone m-blue">
+  <div class="m-header">
+    <span class="m-num mn-blue">M4</span>
+    <span class="m-title">Session is stored after it ends</span>
+  </div>
+  <div class="m-completion-label">Completion</div>
+  <ul class="m-points">
+    <li>When a session ends, what the student shared is captured and stored persistently</li>
+    <li>Nothing is lost between sessions</li>
+  </ul>
+</div>
+
+<div class="milestone m-blue">
+  <div class="m-header">
+    <span class="m-num mn-blue">M5</span>
+    <span class="m-title">AI knows the student's history</span>
+  </div>
+  <div class="m-completion-label">Completion</div>
+  <ul class="m-points">
+    <li>When the same student starts a new session, the AI already knows their history</li>
+    <li>Two types of memory are maintained separately</li>
+    <li class="sub">Factual memory — stress triggers, what has helped, recurring patterns — shapes how the AI responds in conversation</li>
+    <li class="sub">Session summaries — what was discussed, what was decided — used when the coach asks for a briefing</li>
+    <li>A student on their fifth session gets a meaningfully different response than a student on their first</li>
+  </ul>
+</div>
+
+<div class="phase-divider"></div>
+
+<!-- ═══ PHASE 3 ═══ -->
+<div class="phase">
+  <div class="phase-label">Phase 3</div>
+  <div class="phase-title">Problems get surfaced automatically</div>
+</div>
+
+<div class="milestone m-amber">
+  <div class="m-header">
+    <span class="m-num mn-amber">M6</span>
+    <span class="m-title">Signals detected and coach alerted</span>
+  </div>
+  <div class="m-completion-label">Completion</div>
+  <ul class="m-points">
+    <li>A signal is written after every session capturing what was concerning</li>
+    <li>Signal has a severity — how serious the issue is — and an urgency — whether the coach needs to act today or can wait until tomorrow</li>
+    <li>If severity is high or critical, coach dashboard shows an alert automatically without anyone triggering it</li>
+    <li>Alert shows the student's current situation, whether this is a recurring pattern or a first time, and what the coach should do next</li>
+    <li>If the situation is critical, a notification draft for the student's manager is included in the alert</li>
+  </ul>
+</div>
+
+<div class="phase-divider"></div>
+
+<!-- ═══ PHASE 4 ═══ -->
+<div class="phase">
+  <div class="phase-label">Phase 4</div>
+  <div class="phase-title">Coach gets a prepared day</div>
+</div>
+
+<div class="milestone m-violet">
+  <div class="m-header">
+    <span class="m-num mn-violet">M7</span>
+    <span class="m-title">Daily plan generated from signals</span>
+  </div>
+  <div class="m-completion-label">Completion</div>
+  <ul class="m-points">
+    <li>Coach triggers the plan and gets back a structured day</li>
+    <li>Every student who needs attention is slotted with a session type and a plain reason for why they are there today</li>
+    <li>Students who cannot fit into today are deferred to tomorrow with a reason</li>
+  </ul>
+</div>
+
+<div class="phase-divider"></div>
+
+<!-- ═══ PHASE 5 ═══ -->
+<div class="phase">
+  <div class="phase-label">Phase 5</div>
+  <div class="phase-title">Coach walks into every meeting prepared</div>
+</div>
+
+<div class="milestone m-violet">
+  <div class="m-header">
+    <span class="m-num mn-violet">M8</span>
+    <span class="m-title">Pre-meeting brief on any student</span>
+  </div>
+  <div class="m-completion-label">Completion</div>
+  <ul class="m-points">
+    <li>Coach requests a brief for any student and gets a focused summary</li>
+    <li>Brief covers the student's current academic situation, what has changed since the last session, any open concerns, and specific conversation starters for today</li>
+    <li>Brief draws from both factual memory and session summaries built in M5</li>
+  </ul>
+</div>
+
+<div class="phase-divider"></div>
+
+<!-- ═══ PHASE 6 ═══ -->
+<div class="phase">
+  <div class="phase-label">Phase 6</div>
+  <div class="phase-title">Urgency changes the plan</div>
+</div>
+
+<div class="milestone m-rose">
+  <div class="m-header">
+    <span class="m-num mn-rose">M9</span>
+    <span class="m-title">Serious concern updates the plan automatically</span>
+  </div>
+  <div class="m-completion-label">Completion</div>
+  <ul class="m-points">
+    <li>When a serious concern surfaces, the existing daily plan updates automatically</li>
+    <li>A new slot is added or someone is moved to tomorrow — every change has a clear reason attached</li>
+    <li>If two students are both critical and there is only one slot available, the system does not decide on its own — it surfaces both cases to the coach with the tradeoff clearly explained and asks the coach to make the call</li>
+    <li>Coach sees a summary of what changed in the plan and why before they even open the app</li>
+  </ul>
+</div>
+
+</div>
+
+<footer>
+  <div class="footer-logo">Success Coach AI</div>
+  <div>Build Milestones · Workshop</div>
+</footer>
+
+</body>
+</html>
