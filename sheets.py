@@ -24,31 +24,6 @@ def get_sheets_service():
         )
     return build("sheets", "v4", credentials=creds)
 
-import os
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
-
-SPREADSHEET_ID = "1vKn-9LCCcBPjfcFUgEzAWBGpsjzCJtPvrln05rR1Ht0"
-
-ROSTER_TAB        = "roster"
-SCORES_TAB        = "exam_scores"
-ATTENDANCE_TAB    = "attendance"
-EXAM_SCHEDULE_TAB = "exam_schedule"
-
-CREDENTIALS_FILE = "credentials.json"
-
-
-def get_sheets_service():
-    """
-    Service account auth — no browser login, no token.json.
-    Just reads the key file directly and authenticates silently.
-    """
-    creds = service_account.Credentials.from_service_account_file(
-        CREDENTIALS_FILE, scopes=SCOPES
-    )
-    return build("sheets", "v4", credentials=creds)
 
 
 def get_sheet_data(service, tab_name):
