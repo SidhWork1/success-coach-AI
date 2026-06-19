@@ -14,7 +14,18 @@ st.title("🎓 Success Coach AI")
 
 # ── helper: build a system prompt from list-based student data ────────────────
 
-def build_system_prompt(student_info: dict, student_data: dict) -> str:
+from rag import retrieve_relevant_chunks
+
+"""here the build system prompt is changed because now the data is changing and 
+the type of data is changing. There are three types of data majorly present at this
+time which inlcudes:
+1: personal info about students- this part comes from the google sheets
+2: general information which includes login criterion, course structure, exam pattern etc. -> this part comes from the rag/chromaDB
+3: this part is general knowledge which is answered by llm itself and no need to provide extra documentation to answer this.
+
+"""
+# note that the function build_system_prompt is changed and written above which replaces the previous one and kept in its place.
+def build_system_prompt(student_info: dict, student_data: dict, retrieved_chunks: list[str]) -> str:
     name    = student_info.get("name", "")
     program = student_info.get("program", "")
     cohort  = student_info.get("cohort", "")
@@ -23,7 +34,8 @@ def build_system_prompt(student_info: dict, student_data: dict) -> str:
     attendance = student_data.get("attendance", [])
     exams      = student_data.get("exam_schedule", [])
 
-    # ── compute a few derived facts so the LLM doesn't have to guess ──
+    # ... (keep all the existing flags / avg_score / latest_pct / exams logic exactly as before) ...
+
     flags = []
 
     if scores:
@@ -56,34 +68,47 @@ def build_system_prompt(student_info: dict, student_data: dict) -> str:
 
     flags_text = "\n".join(f"- {f}" for f in flags) if flags else "- None right now"
 
+    # NEW — format retrieved knowledge base chunks
+    if retrieved_chunks:
+        kb_text = "\n\n---\n\n".join(retrieved_chunks)
+    else:
+        kb_text = "No specific reference material found for this question."
+
     prompt = f"""You are a warm, supportive academic success coach AI.
 
-You are speaking with {name} (Program: {program}, Cohort: {cohort}).
+        You are speaking with {name} (Program: {program}, Cohort: {cohort}).
 
-EXAM SCORES (all subjects so far):
-{json.dumps(scores, indent=2)}
-{f"Average score: {avg_score:.1f}/100" if avg_score is not None else "No scores yet."}
+        EXAM SCORES (all subjects so far):
+        {json.dumps(scores, indent=2)}
+        {f"Average score: {avg_score:.1f}/100" if avg_score is not None else "No scores yet."}
 
-ATTENDANCE (weekly):
-{json.dumps(attendance, indent=2)}
-{f"Most recent week attendance: {latest_pct}%" if latest_pct is not None else "No attendance data yet."}
+        ATTENDANCE (weekly):
+        {json.dumps(attendance, indent=2)}
+        {f"Most recent week attendance: {latest_pct}%" if latest_pct is not None else "No attendance data yet."}
 
-UPCOMING EXAMS:
-{json.dumps(exams, indent=2)}
+        UPCOMING EXAMS:
+        {json.dumps(exams, indent=2)}
 
-AUTOMATICALLY DETECTED CONCERNS:
-{flags_text}
+        AUTOMATICALLY DETECTED CONCERNS:
+        {flags_text}
 
-Your job:
-- Answer questions using this data. Use the exact numbers given — never estimate or invent.
-- If there are detected concerns above, proactively mention them when relevant, 
-  especially if the student seems unaware or asks a related question.
-- Be encouraging but honest.
-- If asked about something not present in the data, say you don't have that info yet.
-- Keep responses conversational, not like a formal report.
-"""
+        REFERENCE MATERIAL (retrieved from the learning portal guide — may or may not be relevant to this specific question):
+        {kb_text}
+
+        Your job:
+        - Answer questions using the student data above when relevant.
+        - For questions about using the learning portal, logging in, accessing schedules, 
+        raising doubts, or other platform/process topics — use the REFERENCE MATERIAL above. 
+        Only use it if it's actually relevant to what's being asked; ignore it otherwise.
+        - For general academic/conceptual questions (e.g. "what is supervised learning", 
+        "explain OOP in Python") — answer from your own knowledge. The reference material 
+        above will NOT contain this kind of content, so don't expect it to.
+        - If neither the data nor the reference material covers what's being asked, say so honestly 
+        rather than guessing.
+        - Be encouraging but honest. Never make up data.
+        - Keep responses conversational, not like a formal report.
+        """
     return prompt
-
 
 # ── session state init ─────────────────────────────────────────────────────────
 
@@ -148,7 +173,6 @@ if st.session_state.identifying != "done":
 
 # ── main chat ─────────────────────────────────────────────────────────────────
 
-system_prompt = build_system_prompt(st.session_state.student_info, st.session_state.student_data)
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
@@ -159,6 +183,17 @@ if prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
+
+    # NEW — retrieve relevant chunks for this specific question
+    with st.spinner("Thinking..."):
+        retrieved_chunks = retrieve_relevant_chunks(prompt)
+
+    # UPDATED — now passes retrieved_chunks as a third argument
+    system_prompt = build_system_prompt(
+        st.session_state.student_info,
+        st.session_state.student_data,
+        retrieved_chunks,
+    )
 
     messages_for_llm = [{"role": "system", "content": system_prompt}] + [
         {"role": m["role"], "content": m["content"]} for m in st.session_state.messages

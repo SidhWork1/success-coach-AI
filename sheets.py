@@ -13,7 +13,12 @@ EXAM_SCHEDULE_TAB = "exam_schedule"
 
 
 def get_sheets_service():
-    if "gcp_service_account" in st.secrets:
+    try:
+        has_secrets = "gcp_service_account" in st.secrets
+    except Exception:
+        has_secrets = False
+
+    if has_secrets:
         creds_dict = dict(st.secrets["gcp_service_account"])
         creds = service_account.Credentials.from_service_account_info(
             creds_dict, scopes=SCOPES
