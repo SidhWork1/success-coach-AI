@@ -1,3 +1,29 @@
+import streamlit as st
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+
+SPREADSHEET_ID = "1vKn-9LCCcBPjfcFUgEzAWBGpsjzCJtPvrln05rR1Ht0"
+
+ROSTER_TAB        = "roster"
+SCORES_TAB        = "exam_scores"
+ATTENDANCE_TAB    = "attendance"
+EXAM_SCHEDULE_TAB = "exam_schedule"
+
+
+def get_sheets_service():
+    if "gcp_service_account" in st.secrets:
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds = service_account.Credentials.from_service_account_info(
+            creds_dict, scopes=SCOPES
+        )
+    else:
+        creds = service_account.Credentials.from_service_account_file(
+            "credentials.json", scopes=SCOPES
+        )
+    return build("sheets", "v4", credentials=creds)
+
 import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
