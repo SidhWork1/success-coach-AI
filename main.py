@@ -1,3 +1,4 @@
+from memory import save_session_to_memory
 import streamlit as st
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
@@ -170,7 +171,24 @@ if st.session_state.identifying != "done":
 
     st.stop()
 
-
+# code to add the button for ending the session and saving the conversation to Mem0 
+with st.sidebar:
+    st.markdown(f"**Logged in as:** {st.session_state.student_info.get('name', '')}")
+    
+    if st.button("🔚 End Session"):
+        save_session_to_memory(
+            student_id=st.session_state.student_info["student_id"],
+            messages=st.session_state.messages,
+        )
+        
+        # Reset everything so the app is ready for the next student/session
+        st.session_state.messages = []
+        st.session_state.student_info = None
+        st.session_state.student_data = None
+        st.session_state.identifying = "ask_id"
+        
+        st.success("Session saved. See you next time!")
+        st.rerun()
 # ── main chat ─────────────────────────────────────────────────────────────────
 
 
