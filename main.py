@@ -5,6 +5,7 @@ from langchain_openai import ChatOpenAI
 from sheets import fetch_student_data, verify_student_identity
 import json
 from datetime import datetime
+from memory import get_factual_memory, save_session_to_memory
 
 load_dotenv()
 
@@ -26,7 +27,7 @@ time which inlcudes:
 
 """
 # note that the function build_system_prompt is changed and written above which replaces the previous one and kept in its place.
-def build_system_prompt(student_info: dict, student_data: dict, retrieved_chunks: list[str]) -> str:
+def build_system_prompt(student_info: dict, student_data: dict, retrieved_chunks: list[str], factual_memories: list[str]) -> str:
     name    = student_info.get("name", "")
     program = student_info.get("program", "")
     cohort  = student_info.get("cohort", "")
@@ -66,50 +67,59 @@ def build_system_prompt(student_info: dict, student_data: dict, retrieved_chunks
                     flags.append(f"Exam '{e['subject']}' ({e['exam_type']}) is in {days_away} day(s) on {e['exam_date']}")
             except ValueError:
                 pass
-
     flags_text = "\n".join(f"- {f}" for f in flags) if flags else "- None right now"
 
-    # NEW — format retrieved knowledge base chunks
     if retrieved_chunks:
         kb_text = "\n\n---\n\n".join(retrieved_chunks)
     else:
         kb_text = "No specific reference material found for this question."
 
+    # NEW — format factual memory from past sessions
+    if factual_memories:
+        memory_text = "\n".join(f"- {m}" for m in factual_memories)
+    else:
+        memory_text = "No history yet — this is likely their first session."
+
     prompt = f"""You are a warm, supportive academic success coach AI.
 
-        You are speaking with {name} (Program: {program}, Cohort: {cohort}).
+    You are speaking with {name} (Program: {program}, Cohort: {cohort}).
 
-        EXAM SCORES (all subjects so far):
-        {json.dumps(scores, indent=2)}
-        {f"Average score: {avg_score:.1f}/100" if avg_score is not None else "No scores yet."}
+    WHAT YOU KNOW ABOUT THIS STUDENT FROM PAST SESSIONS:
+    {memory_text}
 
-        ATTENDANCE (weekly):
-        {json.dumps(attendance, indent=2)}
-        {f"Most recent week attendance: {latest_pct}%" if latest_pct is not None else "No attendance data yet."}
+    EXAM SCORES (all subjects so far):
+    {json.dumps(scores, indent=2)}
+    {f"Average score: {avg_score:.1f}/100" if avg_score is not None else "No scores yet."}
 
-        UPCOMING EXAMS:
-        {json.dumps(exams, indent=2)}
+    ATTENDANCE (weekly):
+    {json.dumps(attendance, indent=2)}
+    {f"Most recent week attendance: {latest_pct}%" if latest_pct is not None else "No attendance data yet."}
 
-        AUTOMATICALLY DETECTED CONCERNS:
-        {flags_text}
+    UPCOMING EXAMS:
+    {json.dumps(exams, indent=2)}
 
-        REFERENCE MATERIAL (retrieved from the learning portal guide — may or may not be relevant to this specific question):
-        {kb_text}
+    AUTOMATICALLY DETECTED CONCERNS:
+    {flags_text}
 
-        Your job:
-        - Answer questions using the student data above when relevant.
-        - For questions about using the learning portal, logging in, accessing schedules, 
-        raising doubts, or other platform/process topics — use the REFERENCE MATERIAL above. 
-        Only use it if it's actually relevant to what's being asked; ignore it otherwise.
-        - For general academic/conceptual questions (e.g. "what is supervised learning", 
-        "explain OOP in Python") — answer from your own knowledge. The reference material 
-        above will NOT contain this kind of content, so don't expect it to.
-        - If neither the data nor the reference material covers what's being asked, say so honestly 
-        rather than guessing.
-        - Be encouraging but honest. Never make up data.
-        - Keep responses conversational, not like a formal report.
-        """
-    return prompt
+    REFERENCE MATERIAL (retrieved from the learning portal guide — may or may not be relevant to this specific question):
+    {kb_text}
+
+    Your job:
+    - Use what you know about this student's history naturally — don't just list facts back at them, 
+    let it shape your tone and what you check in on. For example, if they've struggled with 
+    something before, notice if it comes up again. If something helped them before, you can 
+    suggest it again if relevant.
+    - Answer questions using the student data above when relevant.
+    - For questions about using the learning portal, logging in, accessing schedules, 
+    raising doubts, or other platform/process topics — use the REFERENCE MATERIAL above. 
+    Only use it if it's actually relevant; ignore it otherwise.
+    - For general academic/conceptual questions (e.g. "what is supervised learning") — 
+    answer from your own knowledge.
+    - If neither the data nor reference material covers what's asked, say so honestly.
+    - Be encouraging but honest. Never make up data or claim memories you don't actually have above.
+    - Keep responses conversational, not like a formal report.
+    """
+    return prompt            
 
 # ── session state init ─────────────────────────────────────────────────────────
 
@@ -195,22 +205,21 @@ with st.sidebar:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-
 prompt = st.chat_input("Ask me anything...")
 if prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # NEW — retrieve relevant chunks for this specific question
     with st.spinner("Thinking..."):
-        retrieved_chunks = retrieve_relevant_chunks(prompt)
+        retrieved_chunks  = retrieve_relevant_chunks(prompt)
+        factual_memories  = get_factual_memory(st.session_state.student_info["student_id"])
 
-    # UPDATED — now passes retrieved_chunks as a third argument
     system_prompt = build_system_prompt(
         st.session_state.student_info,
         st.session_state.student_data,
         retrieved_chunks,
+        factual_memories,
     )
 
     messages_for_llm = [{"role": "system", "content": system_prompt}] + [
