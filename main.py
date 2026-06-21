@@ -6,6 +6,7 @@ from rag import retrieve_relevant_chunks
 from memory import save_session_to_memory, get_factual_memory
 from signals import run_signal_detection, get_all_active_alerts
 from plan import build_daily_plan, dedupe_alerts_by_student
+from coach_agent import build_coach_agent, run_coach_agent
 import json
 from datetime import datetime
 
@@ -376,4 +377,31 @@ elif st.session_state.role == "coach":
                     st.caption(item["reason"])
 
     st.divider()
-    st.caption("Ask the AI coach assistant (coming soon)")
+    st.subheader("💬 Ask the Coach Assistant")
+    st.caption("Try: \"who's flagged today?\", \"build my day, I have 6 hours\", \"give me a brief on STU001\"")
+
+    if "coach_messages" not in st.session_state:
+        st.session_state.coach_messages = []
+    if "coach_agent_executor" not in st.session_state:
+        st.session_state.coach_agent_executor = build_coach_agent()
+
+    for message in st.session_state.coach_messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    coach_input = st.chat_input("Ask about students, alerts, or today's plan...")
+    if coach_input:
+        with st.chat_message("user"):
+            st.markdown(coach_input)
+        st.session_state.coach_messages.append({"role": "user", "content": coach_input})
+
+        with st.spinner("Working on it..."):
+            answer = run_coach_agent(
+                st.session_state.coach_agent_executor,
+                coach_input,
+                st.session_state.coach_messages[:-1],  # history before this new message
+            )
+
+        with st.chat_message("assistant"):
+            st.markdown(answer)
+        st.session_state.coach_messages.append({"role": "assistant", "content": answer})
