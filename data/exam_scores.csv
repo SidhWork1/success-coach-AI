@@ -1,0 +1,13 @@
+student_id,subject,score,max_score,date
+STU001,Python Programming,78,100,2026-05-10
+STU001,Statistics for DS,70,100,2026-05-18
+STU001,Machine Learning Basics,65,100,2026-06-01
+STU001,Data Structures & Algorithms,72,100,2026-06-08
+STU002,HTML & CSS Fundamentals,88,100,2026-05-10
+STU002,JavaScript Essentials,80,100,2026-05-18
+STU002,React Fundamentals,84,100,2026-06-01
+STU002,Node.js Basics,76,100,2026-06-08
+STU003,Python Programming,45,100,2026-05-10
+STU003,Statistics for DS,38,100,2026-05-18
+STU003,Machine Learning Basics,35,100,2026-06-01
+STU003,Data Structures & Algorithms,40,100,2026-06-08

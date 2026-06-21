@@ -1,0 +1,10 @@
+student_id,subject,exam_date,exam_type
+STU001,Deep Learning,2026-06-20,Module Exam
+STU001,Advanced DSA,2026-06-27,Module Exam
+STU001,Capstone Project,2026-07-15,Project Submission
+STU002,System Design,2026-06-22,Module Exam
+STU002,Full Stack Project,2026-06-30,Project Submission
+STU002,DevOps Basics,2026-07-10,Module Exam
+STU003,Deep Learning,2026-06-20,Module Exam
+STU003,Advanced DSA,2026-06-27,Module Exam
+STU003,Capstone Project,2026-07-15,Project Submission

@@ -1,55 +1,38 @@
-import streamlit as st
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
+"""
+Student data access — now reads from local CSV files instead of Google Sheets,
+due to an ongoing Google account access issue.
 
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+Function names and signatures are kept IDENTICAL to the old Sheets-based version,
+so app.py and anything else importing from here needs ZERO changes.
 
-SPREADSHEET_ID = "1vKn-9LCCcBPjfcFUgEzAWBGpsjzCJtPvrln05rR1Ht0"
+If/when Google Sheets access is restored, this file can be swapped back without
+touching any other part of the codebase.
+"""
 
-ROSTER_TAB        = "roster"
-SCORES_TAB        = "exam_scores"
-ATTENDANCE_TAB    = "attendance"
-EXAM_SCHEDULE_TAB = "exam_schedule"
+import os
+import csv
 
+DATA_DIR = "data"
 
-def get_sheets_service():
-    try:
-        has_secrets = "gcp_service_account" in st.secrets
-    except Exception:
-        has_secrets = False
-
-    if has_secrets:
-        creds_dict = dict(st.secrets["gcp_service_account"])
-        creds = service_account.Credentials.from_service_account_info(
-            creds_dict, scopes=SCOPES
-        )
-    else:
-        creds = service_account.Credentials.from_service_account_file(
-            "credentials.json", scopes=SCOPES
-        )
-    return build("sheets", "v4", credentials=creds)
+ROSTER_FILE        = os.path.join(DATA_DIR, "roster.csv")
+SCORES_FILE        = os.path.join(DATA_DIR, "exam_scores.csv")
+ATTENDANCE_FILE    = os.path.join(DATA_DIR, "attendance.csv")
+EXAM_SCHEDULE_FILE = os.path.join(DATA_DIR, "exam_schedule.csv")
 
 
-
-def get_sheet_data(service, tab_name):
-    result = (
-        service.spreadsheets()
-        .values()
-        .get(spreadsheetId=SPREADSHEET_ID, range=tab_name)
-        .execute()
-    )
-    rows = result.get("values", [])
-    if not rows:
+def _read_csv(filepath):
+    """Reads a CSV file and returns a list of dicts (header row = keys)."""
+    if not os.path.exists(filepath):
+        print(f"Warning: {filepath} not found")
         return []
-    headers = rows[0]
-    data = []
-    for row in rows[1:]:
-        padded = row + [""] * (len(headers) - len(row))
-        data.append(dict(zip(headers, padded)))
-    return data
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        return [row for row in reader]
 
 
 def find_one_row_by_id(data, student_id):
+    """Use for files with one row per student (roster)."""
     student_id = str(student_id).strip()
     for row in data:
         if str(row.get("student_id", "")).strip() == student_id:
@@ -58,6 +41,7 @@ def find_one_row_by_id(data, student_id):
 
 
 def find_all_rows_by_id(data, student_id):
+    """Use for files with multiple rows per student (scores, attendance, exams)."""
     student_id = str(student_id).strip()
     return [
         row for row in data
@@ -66,17 +50,26 @@ def find_all_rows_by_id(data, student_id):
 
 
 def verify_student_identity(student_id):
-    service = get_sheets_service()
-    roster  = get_sheet_data(service, ROSTER_TAB)
+    """Roster lookup — single row per student. Source of truth for identity."""
+    roster = _read_csv(ROSTER_FILE)
     return find_one_row_by_id(roster, student_id)
 
 
-def fetch_student_data(student_id):
-    service = get_sheets_service()
+def get_all_students():
+    """Returns the full roster — every student's basic info. Used by the coach view."""
+    return _read_csv(ROSTER_FILE)
 
-    scores_data       = get_sheet_data(service, SCORES_TAB)
-    attendance_data    = get_sheet_data(service, ATTENDANCE_TAB)
-    exam_schedule_data = get_sheet_data(service, EXAM_SCHEDULE_TAB)
+
+def fetch_student_data(student_id):
+    """
+    Fetches ALL rows belonging to this student across:
+    - exam_scores (one row per subject)
+    - attendance (one row per week)
+    - exam_schedule (one row per upcoming exam)
+    """
+    scores_data        = _read_csv(SCORES_FILE)
+    attendance_data     = _read_csv(ATTENDANCE_FILE)
+    exam_schedule_data  = _read_csv(EXAM_SCHEDULE_FILE)
 
     return {
         "scores":        find_all_rows_by_id(scores_data, student_id),
