@@ -5,6 +5,7 @@ from sheets import fetch_student_data, verify_student_identity, get_all_students
 from rag import retrieve_relevant_chunks
 from memory import save_session_to_memory, get_factual_memory
 from signals import run_signal_detection, get_all_active_alerts
+from plan import build_daily_plan, dedupe_alerts_by_student
 import json
 from datetime import datetime
 
@@ -296,6 +297,7 @@ elif st.session_state.role == "coach":
         student_ids = [s["student_id"] for s in all_students if s.get("student_id")]
         student_lookup = {s["student_id"]: s for s in all_students}
         alerts = get_all_active_alerts(student_ids)
+        alerts = dedupe_alerts_by_student(alerts)
 
     if not alerts:
         st.success("✅ No high or critical alerts right now. All clear.")
@@ -327,6 +329,51 @@ elif st.session_state.role == "coach":
                             disabled=True,
                             key=f"manager_notice_{alert['student_id']}_{alert['timestamp']}",
                         )
+
+    st.divider()
+    st.subheader("📅 Build Today's Plan")
+
+    available_hours = st.number_input(
+        "How many hours do you have available today?",
+        min_value=0.0, max_value=12.0, value=7.0, step=0.5,
+    )
+
+    if st.button("Build today's plan"):
+        with st.spinner("Building your day..."):
+            plan = build_daily_plan(available_hours, student_ids, student_lookup)
+
+        st.session_state.coach_plan = plan
+
+    if "coach_plan" in st.session_state and st.session_state.coach_plan:
+        plan = st.session_state.coach_plan
+
+        st.markdown(
+            f"**{plan['total_minutes_used']} of {plan['total_minutes_available']} minutes used**"
+        )
+
+        st.markdown("#### Today's Schedule")
+        if not plan["today"]:
+            st.caption("Nothing scheduled — no active alerts, or no time available.")
+        else:
+            for i, item in enumerate(plan["today"], start=1):
+                severity_icon = "🔴" if item["severity"] == "critical" else "🟠"
+                with st.container(border=True):
+                    st.markdown(
+                        f"**{i}. {severity_icon} {item['name']}** — "
+                        f"{item['session_type']} ({item['duration_minutes']} min)"
+                    )
+                    st.caption(f"Why: {item['reason']}")
+                    if item.get("next_action"):
+                        st.caption(f"Suggested approach: {item['next_action']}")
+
+        st.markdown("#### Deferred to Tomorrow")
+        if not plan["deferred"]:
+            st.caption("Nothing deferred — everyone fit into today.")
+        else:
+            for item in plan["deferred"]:
+                with st.container(border=True):
+                    st.markdown(f"**{item['name']}**")
+                    st.caption(item["reason"])
 
     st.divider()
     st.caption("Ask the AI coach assistant (coming soon)")
