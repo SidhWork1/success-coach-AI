@@ -5,7 +5,7 @@ from sheets import fetch_student_data, verify_student_identity, get_all_students
 from rag import retrieve_relevant_chunks
 from memory import save_session_to_memory, get_factual_memory
 from signals import run_signal_detection, get_all_active_alerts
-from plan import build_daily_plan, dedupe_alerts_by_student
+from plan import build_daily_plan, dedupe_alerts_by_student, save_active_plan, load_active_plan, reconcile_plan_with_new_signal
 from coach_agent import build_coach_agent, run_coach_agent
 import json
 from datetime import datetime
@@ -239,6 +239,18 @@ if st.session_state.role == "student":
             if signal:
                 st.warning("⚠️ A signal was detected this session (placeholder — not yet written to signal_sheet):")
                 st.json(signal)
+
+                # M9 — if a daily plan already exists, try to fold this new
+                # signal into it automatically.
+                if signal["severity"] in ("high", "critical"):
+                    with st.spinner("Checking today's plan for any needed updates..."):
+                        from sheets import get_all_students
+                        all_students_for_reconcile = get_all_students()
+                        lookup_for_reconcile = {s["student_id"]: s for s in all_students_for_reconcile}
+                        reconcile_result = reconcile_plan_with_new_signal(signal, lookup_for_reconcile)
+
+                    if reconcile_result["action"] not in ("no_active_plan", "already_present"):
+                        st.info(f"📋 Plan update: {reconcile_result['detail']}")
             else:
                 st.caption("No concerning signal detected this session.")
 
@@ -293,6 +305,28 @@ elif st.session_state.role == "coach":
 
     st.title("🧑‍🏫 Coach View")
 
+    # ── M9: show what changed since the coach last checked, FIRST, before anything else ──
+    persisted = load_active_plan()
+    if persisted and persisted.get("change_log"):
+        with st.container(border=True):
+            st.markdown("#### 📋 What changed in today's plan")
+            for entry in persisted["change_log"]:
+                if entry.startswith("CONFLICT:"):
+                    st.error(entry)
+                else:
+                    st.markdown(f"- {entry}")
+
+            # If the most recent change is an unresolved conflict, let the coach decide now.
+            last_entry = persisted["change_log"][-1]
+            if last_entry.startswith("CONFLICT:") and not persisted.get("conflict_resolved"):
+                st.markdown("**Today's currently scheduled students, in priority order:**")
+                for item in persisted["plan"]["today"]:
+                    st.caption(f"- {item['name']} ({item['severity']})")
+                st.caption("Decide who keeps today's slot, then rebuild the plan manually below if needed, "
+                           "or check the newly flagged student's details in the alerts section.")
+
+        st.session_state.coach_plan = persisted["plan"]
+
     with st.spinner("Checking for flagged students..."):
         all_students = get_all_students()
         student_ids = [s["student_id"] for s in all_students if s.get("student_id")]
@@ -342,6 +376,7 @@ elif st.session_state.role == "coach":
     if st.button("Build today's plan"):
         with st.spinner("Building your day..."):
             plan = build_daily_plan(available_hours, student_ids, student_lookup)
+            save_active_plan(plan, change_log=[])  # fresh plan, empty change log
 
         st.session_state.coach_plan = plan
 
